@@ -12,6 +12,7 @@ library(shiny)
 library(shinydashboard)
 library(plotly)
 source("CurvaAprendizaje.R")
+source("Corelap.R")
 library(readxl)
 ui <- dashboardPage(
     dashboardHeader(title = "Herramienta Funpro"),
@@ -48,10 +49,21 @@ ui <- dashboardPage(
             tabItem(tabName = "distr",
                 sidebarLayout(
                     sidebarPanel(
-                        
+                        fileInput( "inputCorelap","Cargar archivo .xlsx con los datos de la matriz de cercania",accept=c(".xlsx")),
+                        uiOutput("foTittle"),
+                        verbatimTextOutput("fo"),
+                        uiOutput("foDescription")
                     ),
                     mainPanel(
-                        
+                        tags$style("#corelapTable {display: flex;}"),
+                        tags$style(".table {margin: 0 auto 0 auto;}"),
+                        uiOutput("styles"),
+                        div(
+                            uiOutput("tableCorelapDescription"),
+                            uiOutput("br"),
+                            tableOutput('corelapTable'),
+                            class="card"
+                        )
                     )
                 )
             )
@@ -102,6 +114,46 @@ server <- function(input, output) {
     output$tableTittle <- renderUI({
         if (is.null(datosCurva())) { return(NULL) }
         tags$p("A continuación, se presenta una tabla con la tasa de aprendizaje, la tasa de mejora y los parámetros k y n de la ecuación y = kx^n para cada operario.")
+    })
+    
+    #Corelap
+    datosCorelap <- eventReactive(input$inputCorelap, {
+        archivoCorelap <- input$inputCorelap
+        if (is.null(archivoCorelap)) { return(NULL) }
+        #Se lee el archivo 
+        dataFileCorelap <-read_excel(archivoCorelap$datapath,sheet=1, 
+                              col_names = TRUE)
+        #se guarda unicamente la segunda columna que son las demandas
+        corelapData<-corelap(data.frame(dataFileCorelap))
+    })
+    output$foTittle <- renderUI({
+        if (is.null(datosCorelap())) { return(NULL) }
+        tags$b("El valor de la función objetivo es:")
+    })
+    output$fo <- renderText({
+        datosCorelap()[["fo"]]
+    })
+    output$foDescription <- renderUI({
+        if (is.null(datosCorelap())) { return(NULL) }
+        tags$p("Esta función objetivo se calculó por medio de distancias manhattan, y asumiendo una distancia unitaria entre departamentos que sean ubicados adyacentemente.")
+    })
+    
+    output$corelapTable <- renderTable({
+        if (is.null(datosCorelap())) { return(NULL) }
+        as.data.frame(datosCorelap()[["loc_mat"]])
+    },colnames = FALSE,align="c",bordered=TRUE)
+    
+    output$tableCorelapDescription <- renderUI({
+        if (is.null(datosCorelap())) { return(NULL) }
+            tags$h4("La mejor distribución encontrada es:")
+    })
+    output$styles <- renderUI({
+        if (is.null(datosCorelap())) { return(NULL) }
+        tags$style(".card {background-color: white; padding: 20px}")
+    })
+    output$br <- renderUI({
+        if (is.null(datosCorelap())) { return(NULL) }
+        tags$br()
     })
 }
 
