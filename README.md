@@ -1,4 +1,4 @@
-# Proyecto Funpro
+# Herramientas de Fundamentos Producción
 Herramienta para el análisis de curva de aprendizaje y distribución de planta.
 
 Desplegada en:  
